@@ -43,3 +43,31 @@ jobs:
           echo "API test failed with status code $response"
           exit 1
         fi
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v3
+      with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+    - name: SonarCloud Scan
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        ORGANISATION_KEY: ${{ secrets.ORGANISATION_KEY }}
+        PROJECT_KEY: ${{ secrets.PROJECT_KEY }}
+      run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=$PROJECT_KEY \
+            -Dsonar.organization=$ORGANISATION_KEY \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN
+
+    - name: Quality Gate
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        status=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=${{ secrets.PROJECT_KEY }}&category=QUALITY_GATE" | jq -r '.analyses[0].events[0].name')
+        if [ "$status" != "OK" ]; then
+          echo "Quality Gate failed: $status"
+          exit 1
+        fi
