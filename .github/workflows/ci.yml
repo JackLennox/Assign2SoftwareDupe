@@ -45,48 +45,21 @@ jobs:
         fi
 
     - name: Cache SonarCloud packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
 
-    - name: SonarCloud Scan
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        ORGANISATION_KEY: ${{ secrets.ORGANISATION_KEY }}
-        PROJECT_KEY: ${{ secrets.PROJECT_KEY }}
-      run: |
-          mvn sonar:sonar \
-            -Dsonar.projectKey=$PROJECT_KEY \
-            -Dsonar.organization=$ORGANISATION_KEY \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
 
-    - name: Quality Gate
+    - name: Build and analyze
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: |
-        max_attempts=5
-        attempt=0
-        status="null"
-        while [[ "$status" == "null" && $attempt -lt $max_attempts ]]; do
-          echo "Checking Quality Gate status... (Attempt: $((attempt+1)))"
-          response=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=${{ secrets.PROJECT_KEY }}&category=QUALITY_GATE")
-          status=$(echo "$response" | jq -r '.analyses[0].events[0].name')
-          if [ "$status" == "null" ]; then
-            echo "Quality Gate status not available yet. Retrying in 30 seconds..."
-            sleep 30
-            attempt=$((attempt+1))
-          fi
-        done
-        
-        if [ "$status" == "null" ]; then
-          echo "Quality Gate status not found after $max_attempts attempts. Response was:"
-          echo "$response"
-          exit 1
-        elif [ "$status" != "OK" ]; then
-          echo "Quality Gate failed: $status"
-          exit 1
-        else
-          echo "Quality Gate passed."
-        fi
+      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=JackLennox_Assign2SoftwareDupe
