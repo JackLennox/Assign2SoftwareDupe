@@ -46,7 +46,7 @@ public class MusicFinderController {
             String formattedLyrics = rawLyrics.replace("\\r", "");
     
             // Step 2: Replace single newlines (\n) with a single <br>
-            formattedLyrics = formattedLyrics.replace("\\n+", "<br>");
+            formattedLyrics = formattedLyrics.replace("\n", "<br>");
     
             // Step 3: Return the formatted lyrics
             return formattedLyrics.trim();
