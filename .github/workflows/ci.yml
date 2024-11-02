@@ -66,8 +66,16 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        status=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=${{ secrets.PROJECT_KEY }}&category=QUALITY_GATE" | jq -r '.analyses[0].events[0].name')
-        if [ "$status" != "OK" ]; then
+        response=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=***&category=QUALITY_GATE")
+        status=$(echo "$response" | jq -r '.analyses[0].events[0].name')
+  
+        if [ "$status" == "null" ]; then
+          echo "Quality Gate status not found. Response was:"
+          echo "$response"
+          exit 1
+        elif [ "$status" != "OK" ]; then
           echo "Quality Gate failed: $status"
           exit 1
+        else
+          echo "Quality Gate passed."
         fi
