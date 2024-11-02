@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate;
 public class ArtistController {
 
     // ObjectMapper to help with JSON formatting
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private final RestTemplate restTemplate;
 
@@ -31,11 +31,10 @@ public class ArtistController {
         try {
             // Get all the pages for the given search term
             String rawJson = restTemplate.getForObject(pageApiUrl, String.class);
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(rawJson);
+            JsonNode jsonNode = mapper.readTree(rawJson);
 
             // Convert the second element of the array (the article names) to a string array
-            String[] pages = objectMapper.convertValue(jsonNode.get(1), String[].class);
+            String[] pages = mapper.convertValue(jsonNode.get(1), String[].class);
             if(pages.length == 0){
                 throw new ArtistNotFoundException("Information for " + artist + " not found");
             }
@@ -74,7 +73,7 @@ public class ArtistController {
     // Fetch the artist information
     @GetMapping("/artist/{name}")
     public ResponseEntity<ObjectNode> getArtistInformation(@PathVariable String name) {
-        ObjectNode response = objectMapper.createObjectNode();
+        ObjectNode response = mapper.createObjectNode();
 
         if(name == null || name.isEmpty()){
             response.put("error", "Artist name cannot be null or empty");
