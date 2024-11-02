@@ -66,12 +66,22 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        sleep 20
-        response=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=${{ secrets.PROJECT_KEY }}&category=QUALITY_GATE")
-        status=$(echo "$response" | jq -r '.analyses[0].events[0].name')
-  
+        max_attempts=5
+        attempt=0
+        status="null"
+        while [[ "$status" == "null" && $attempt -lt $max_attempts ]]; do
+          echo "Checking Quality Gate status... (Attempt: $((attempt+1)))"
+          response=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/project_analyses/search?project=${{ secrets.PROJECT_KEY }}&category=QUALITY_GATE")
+          status=$(echo "$response" | jq -r '.analyses[0].events[0].name')
+          if [ "$status" == "null" ]; then
+            echo "Quality Gate status not available yet. Retrying in 30 seconds..."
+            sleep 30
+            attempt=$((attempt+1))
+          fi
+        done
+        
         if [ "$status" == "null" ]; then
-          echo "Quality Gate status not found. Response was:"
+          echo "Quality Gate status not found after $max_attempts attempts. Response was:"
           echo "$response"
           exit 1
         elif [ "$status" != "OK" ]; then
