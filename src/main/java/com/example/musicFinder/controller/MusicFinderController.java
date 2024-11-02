@@ -15,8 +15,8 @@ import org.springframework.http.HttpStatus;
 public class MusicFinderController {
 
     // ObjectMapper to help with JSON formatting
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    
+    private final ObjectMapper mapper = new ObjectMapper();
+
     private final RestTemplate restTemplate;
 
     // Constructor to inject RestTemplate
@@ -36,27 +36,26 @@ public class MusicFinderController {
         try {
             // Fetch the raw JSON response
             String rawJson = restTemplate.getForObject(apiUrl, String.class);
-    
+
             // Parse the JSON to extract the lyrics
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(rawJson);
+            JsonNode jsonNode = mapper.readTree(rawJson);
             String rawLyrics = jsonNode.get("lyrics").asText();
 
             // Step 1: Remove carriage returns (\r)
             String formattedLyrics = rawLyrics.replace("\\r", "");
-    
+
             // Step 2: Replace single newlines (\n) with a single <br>
             formattedLyrics = formattedLyrics.replace("\n", "<br>");
-    
+
             // Step 3: Return the formatted lyrics
             return formattedLyrics.trim();
         } catch (Exception e) {
             throw new LyricsNotFoundException("Lyrics not found for " + artist + " - " + song);
         }
     }
-    
-    
-    
+
+
+
     // Generate YouTube search link based on artist and song
     private String getYouTubeSearchUrl(String artist, String song) {
         String searchQuery = artist.replace(" ", "+") + "+" + song.replace(" ", "+");
@@ -66,7 +65,7 @@ public class MusicFinderController {
     // Fetch song details, YouTube search link, and formatted lyrics
     @GetMapping("/song/{artist}/{name}")
     public ResponseEntity<ObjectNode> getSongDetails(@PathVariable String artist, @PathVariable String name) {
-        ObjectNode response = objectMapper.createObjectNode();
+        ObjectNode response = mapper.createObjectNode();
 
         // Validate input
         if (artist == null || name == null || artist.trim().isEmpty() || name.trim().isEmpty()) {
@@ -77,7 +76,7 @@ public class MusicFinderController {
 
         // Get the YouTube search link
         String youtubeSearchUrl = getYouTubeSearchUrl(artist, name);
-        
+
         try {
             // Get the formatted lyrics
             String lyrics = getFormattedLyrics(artist, name);
